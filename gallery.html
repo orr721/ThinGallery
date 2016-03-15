@@ -1,0 +1,266 @@
+<html>
+<!--
+
+ThinGallery
+===========
+
+A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range headers, 
+and Apache's own index pages to quickly display thumbnails for a directory, without 
+needing ANY server-side scripting.
+
+LICENSE: MPLv2
+
+-->
+ <head>
+  <style>
+        body {
+         color: white;
+         background-color: black;
+        }
+        .thumb {  
+                display: inline-block;
+                width:128px;height:128px;                 
+                background-position: center;
+                background-repeat: no-repeat;
+                margin: 4px;
+                text-align: center;
+        }
+        .thumb.loaded {
+          background-size: contain;
+        }
+        .thumb.wait {           
+          background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAuCAAAAACD2S9mAAABo0lEQVQ4y9WUT0REURTGv0bGxBMjyfNKpHUiI0kSaTGLkRjTn0Xb0WoWkRZJ0q5V25G0qDZjtEzaJHlimjIyxjCUJInXP6aMl6/FvJm59715o2V9q3ve/d3jvvOde4C/oSYAYKNdzy8zke4fG+X4Fog3dDj2VRQF4gRBBzGBYyGaoe4gzjgvRJ47hmxAkPfSHcO8UyRAKXBOPpLkthTHeWhL2vbIKSGc5FO7/WIjptFdDboMc9hZnxhTqrXUrrkgO1fW3ixur14+W/yBTuzP1SuykmdFeaW+D4EKYA64WRW3iC1XMwcsoq9Bn2SKLGblZpFqr+Fi9mP6EqprihWOAwhxyQ1QjQyQA7JGuwtxxCEAwLjDNUvL3LRWW4zVA8aYagZwA8CX4agT0J5fa972vj9pdsCjcwZA5LqUjpQb1/5O1rkD+BIkyYQC7HJDBvr40Arl3Kq67kfrA/slQmcY3tOq++c+TDIltSDTwAFrSgBp6X/ijCJGUYuISt1fYE/AlAhzsIcFgTDpzVFW3suSNCpWadeaOFSS5JeDKJHJ382x/6Mf6UgdoKCF3YQAAAAASUVORK5CYII=);
+        }
+       .fullscreen {
+         position: absolute;
+         width: 100%;
+         min-height: 100%;
+         left: 0;
+         top: 0;
+        }
+        #modal {
+          background-color: rgba(0,0,0,0.8);
+          
+        }
+        #bigimage {
+         position: absolute;
+         width: 100%;
+         min-height: 100%;
+         left: 0;
+         top: 0;
+         background-position: center;
+         background-repeat: no-repeat;          
+         background-size: contain;
+        }
+        #left,#right,#wait,#errored,#maximise {
+          position:absolute;
+          font-size:96px;
+          font-weight: bold;          
+        }        
+        #left,#right,#wait,#errored {
+           top: 50%; transform: translateY(-50%);
+        }
+        #left {  left:10px;  }
+        #right { right:10px; }
+        #maximise { right:10px;bottom:10px; }
+        #wait,#errored { 
+          left:50%; 
+          transform: translateX(-50%);      
+        }
+        #left,#right,#wait,#errored,#maximise {
+          text-shadow: 4px 0 0 #000, 0 -4px 0 #000, 0 4px 0 #000, -4px 0 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, 3px 3px 0 #000, -3px -3px 0 #000;;
+        }
+   </style>
+ </head>
+<body>
+
+<div id="thumbs"></div>
+<script>
+var MAX_CONCURRENT_REQ = 4;
+var requestsInProgress = 0;
+var requestsQueued = [];
+
+var imageURLs = [];
+var imageInfo = {};
+var imageLoader; // background IMG tag for loading
+
+function getEXIFThumb(url, arraybuffer, callback) {
+  // http://stackoverflow.com/questions/10349622/extract-thumbnail-from-jpeg-file
+  // super hacky thumbnail extraction
+  var array = new Uint8Array(arraybuffer), start, end;
+    for (var i = 2; i < array.length; i++) {
+      if (array[i] == 0xFF) {
+        if (!start) {
+          if (array[i + 1] == 0xD8) {
+            start = i;
+          }            } else {
+                        if (array[i + 1] == 0xD9) {
+                            end = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (start && end) {
+                var data = array.subarray(start, end);
+                var blob = new Blob( [ data ], { type: "image/jpeg" } );
+                var urlCreator = window.URL || window.webkitURL;
+                var imageURL = urlCreator.createObjectURL( blob );                
+                callback(imageURL);
+            } else { // just supply the full URL :(
+                callback(url);
+            }     
+}
+
+function getImageThumbnail(url, callback) {
+  //console.log("Loading "+url);
+  var xhr = new XMLHttpRequest;
+  xhr.open('GET', url, true);
+  xhr.responseType = "arraybuffer";
+  xhr.setRequestHeader('Range', 'bytes=0-30000');
+  xhr.onload = function (oEvent) {
+    getEXIFThumb(url, xhr.response, callback);
+  };
+  xhr.send(null);
+}
+
+function getImageThumbnailThrottled(url, cb) {
+  if (requestsInProgress < MAX_CONCURRENT_REQ) {
+   requestsInProgress++;
+   getImageThumbnail(url, function(url) {
+     requestsInProgress--;
+     if (requestsQueued.length) {
+       var r = requestsQueued.shift();
+       getImageThumbnailThrottled(r.url, r.cb);
+     }
+     cb(url);
+   });
+  } else {
+    console.log("Delayed "+url);
+    requestsQueued.push({url:url,cb:cb});
+  }
+}
+
+function addDeferredThumb(href) {
+  var niceName;
+  if (href.lastIndexOf("/")>=0)
+    niceName = href.substr(href.lastIndexOf("/")+1);
+  else
+    niceName = href;
+  
+
+  var im = document.createElement("DIV");
+  im.innerHTML = niceName;
+  im.className = "thumb wait";
+  im.setAttribute("href", href);
+  im.onclick = onThumbClicked;
+  im.onerror = function() {
+   console.error("WOW!"+href);
+  };
+  im = thumbs.appendChild(im);
+  getImageThumbnailThrottled(href, function(url) {
+    imageInfo[href].thumb = url;
+    im.className = "thumb loaded";
+    //im.src = url;        
+    im.setAttribute("style","background-image:url("+url+")");
+  });
+}
+
+var xhr = new XMLHttpRequest();
+xhr.onload = function() {
+  console.log(this.responseXML.title);
+  var thumbs = document.getElementById("thumbs");
+  var elements = this.responseXML.getElementsByTagName("a");  
+  for (var i=0;i<elements.length;i++) {
+    var href = elements[i].href;
+    var hrefl = href.toLowerCase();
+    if (hrefl.substr(-4)==".jpg" || hrefl.substr(-5)==".jpeg") {      
+      imageURLs.push(href);
+      imageInfo[href] = { thumb : "" };
+      //  document.getElementById("im").src = url;
+      addDeferredThumb(href);
+    }
+  }
+}
+xhr.open("GET", ".");
+xhr.responseType = "document";
+xhr.send();
+
+function loadImage(url) {
+  document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")");  
+  if (imageLoader) {
+    imageLoader.onload=undefined;
+    imageLoader.onerror=undefined;
+  }
+  document.getElementById("errored").setAttribute("style","visibility:hidden");
+  imageLoader = document.createElement("IMG");
+  imageLoader.onload = function() {
+    console.log("Loaded "+url);
+    document.getElementById("wait").setAttribute("style","visibility:hidden");
+    document.getElementById("bigimage").setAttribute("style","background-image:url("+url+")");
+  };
+  imageLoader.onerror = function() {
+    console.log("Error Loading "+url);
+    document.getElementById("errored").setAttribute("style","visibility:inherit");
+  };
+  imageLoader.src = url;
+}
+
+function onThumbClicked(e) {
+  e.preventDefault();
+  document.getElementById("wait").setAttribute("style","visibility:inherit");
+  document.getElementById("errored").setAttribute("style","visibility:hidden");
+  document.getElementById("modal").setAttribute("style","display:block;top:"+window.scrollY+"px");
+
+  var url = e.srcElement.getAttribute("href");
+  console.log("Clicked "+url);  
+  loadImage(url);
+}
+
+function onModalClicked(e) {
+  e.preventDefault();
+  if (e.target.id=="left" || e.target.id=="right" || e.target.id=="maximise") return;
+  document.getElementById("modal").setAttribute("style","visibility:hidden");
+  document.getElementById("bigimage").setAttribute("style","");
+}
+
+function onChangeModal(e, dir) {
+  e.preventDefault();
+  var i = imageURLs.indexOf(imageLoader.src);
+  if (i<0) i=0;
+  i += dir;
+  if (i<0) i+= imageURLs.length;
+  if (i>=imageURLs.length) i-= imageURLs.length;
+  document.getElementById("wait").setAttribute("style","visibility:inherit");  
+  loadImage(imageURLs[i]);
+}
+
+function onMaximiseClicked(e) {
+  e.preventDefault();
+  if (!imageLoader || !imageLoader.src) return;
+  window.open(imageLoader.src, '_blank').focus();
+}
+
+window.onscroll = onModalClicked;
+window.onload = function() {  
+  document.getElementById("modal").onclick = onModalClicked;
+  document.getElementById("left").onclick = function(e) { onChangeModal(e,-1); };
+  document.getElementById("right").onclick = function(e) { onChangeModal(e,+1); };
+  document.getElementById("maximise").onclick = onMaximiseClicked;
+};
+
+</script>
+
+<div id="modal" style="visibility:hidden" class="fullscreen">
+  <div id="bigimage" class="wait"></div>
+  <div id="left">&#9664;</div>
+  <div id="right">&#9654;</div>
+  <div id="wait">&#8987;</div>
+  <div id="errored">&#9888;</div>
+  <div id="maximise">&#x2798;</div>
+</div>
+
+</div>
+</body>
+
+</html>
