@@ -163,7 +163,7 @@ function addDeferredThumb(thumbs, href) {
   
 
   var im = document.createElement("DIV");
-  im.innerHTML = '<div>'+niceName+'</div>';
+  im.innerHTML = '<div>'+decodeURIComponent(niceName)+'</div>';
   im.className = "thumb wait";
   im.setAttribute("href", href);
   im.onclick = onThumbClicked;
@@ -183,7 +183,7 @@ function addFolder(thumbs, href) {
   if (href.length < baseURL.length) niceName = "[BACK]";
 
   var im = document.createElement("DIV");
-  im.innerHTML = '<div>'+niceName+'</div><div class="foldericon">&#128193;</div>';
+  im.innerHTML = '<div>'+decodeURIComponent(niceName)+'</div><div class="foldericon">&#128193;</div>';
   im.className = "thumb folder";
   im.setAttribute("href", href);
   im.onclick = onFolderClicked;
