@@ -59,8 +59,7 @@ Usage
          top: 0;
         }
         #modal {
-          background-color: rgba(0,0,0,0.8);
-          
+          background-color: rgba(0,0,0,0.8);          
         }
         #bigimage {
          position: absolute;
@@ -109,7 +108,8 @@ var imageLoader; // background IMG tag for loading
 function getEXIFThumb(url, arraybuffer, callback) {
   // http://stackoverflow.com/questions/10349622/extract-thumbnail-from-jpeg-file
   // super hacky thumbnail extraction
-  var array = new Uint8Array(arraybuffer), start, end;
+  var array = new Uint8Array(arraybuffer),start,end;
+  
     for (var i = 2; i < array.length; i++) {
       if (array[i] == 0xFF) {
         if (!start) {
@@ -130,10 +130,8 @@ function getEXIFThumb(url, arraybuffer, callback) {
                 var imageURL = urlCreator.createObjectURL( blob );                
                 callback(imageURL);
             } else { 
-                // just supply the full URL :( We use getImageThumbnailThrottled
-                // so we can make sure that full images get loaded AFTER all
-                // the thumbnails
-                getImageThumbnailThrottled(url, callback, true);
+                // just supply the full URL :( 
+                callback(url)
             }     
 }
 
@@ -175,7 +173,14 @@ function addDeferredThumb(thumbs, href) {
     niceName = href.substr(href.lastIndexOf("/")+1);
   else
     niceName = href;
-  
+
+  function thumbLoaded(url) {
+    imageInfo[href].thumb = url;
+    im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
+    im.className = "thumb";
+    //im.src = url;        
+    im.setAttribute("style","background-image:url("+url+")");
+  }   
 
   var im = document.createElement("DIV");
   im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">&#8987;</div>';
@@ -184,11 +189,13 @@ function addDeferredThumb(thumbs, href) {
   im.onclick = onThumbClicked;
   im = thumbs.appendChild(im);
   getImageThumbnailThrottled(href, function(url) {
-    imageInfo[href].thumb = url;
-    im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
-    im.className = "thumb";
-    //im.src = url;        
-    im.setAttribute("style","background-image:url("+url+")");
+    if (url == href) {
+      // We use getImageThumbnailThrottled so we can make sure
+      // that full images get loaded AFTER all the thumbnails
+      getImageThumbnailThrottled(url, thumbLoaded, true);
+    } else {
+      thumbLoaded(url);
+    }
   });
 }
 
@@ -205,11 +212,6 @@ function addFolder(thumbs, href) {
   im.onclick = onFolderClicked;
   im = thumbs.appendChild(im);
 }
-
-if (window.location.search.length>1)
-  loadAllImages(window.location.search.substr(1));
-else
-  loadAllImages("");
 
 function processIndexPage() {
   console.log(this.responseXML.title);
@@ -232,7 +234,6 @@ function processIndexPage() {
       handled.push(href);
       imageURLs.push(href);
       imageInfo[href] = { thumb : "" };
-      //  document.getElementById("im").src = url;
       addDeferredThumb(thumbs, href);
     }
   }
@@ -326,6 +327,11 @@ window.onload = function() {
     if (e.keyCode==37) onChangeModal(e,-1);
     if (e.keyCode==39) onChangeModal(e,1);
   });
+
+  if (window.location.search.length>1)
+    loadAllImages(window.location.search.substr(1));
+  else
+    loadAllImages(".");
 };
 
 </script>

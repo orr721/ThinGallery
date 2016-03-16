@@ -50,6 +50,7 @@ Future Additions
 
 These are just ideas - if you fancy adding them then please have a go and issue a Pull Request!
 
+* Find some Unicode that actually works nicely on all platforms
 * Relative paths when folders clicked on
 * Better EXIF decoding (the current way is nasty and fails sometimes)
 * Read image rotation from EXIF
