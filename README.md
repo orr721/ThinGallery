@@ -1,11 +1,15 @@
 ThinGallery
 ===========
 
+https://github.com/gfwilliams/ThinGallery
+
 Copyright 2016 Gordon Williams, gw@pur3.co.uk (Licensed as MPLv2)
 
 A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range headers, 
 and your web server's own index pages to quickly display thumbnails for a directory without
 having to fully load every image file, and without needing ANY server-side scripting.
+
+[See it in action!](http://www.pur3.co.uk/gallery)
 
 ![Original Index Page](screenshots/index.png)
 ![Gallery list](screenshots/gallery1.png)
