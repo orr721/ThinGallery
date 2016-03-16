@@ -4,30 +4,35 @@
 ThinGallery
 ===========
 
-A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range headers, 
-and Apache's own index pages to quickly display thumbnails for a directory, without 
-needing ANY server-side scripting.
+Copyright 2016 Gordon Williams, gw@pur3.co.uk (Licensed as MPLv2)
 
-LICENSE: MPLv2
+A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range headers, 
+and your web server's own index pages to quickly display thumbnails for a directory without
+having to fully load every image file, and without needing ANY server-side scripting.
+
+Usage
+-----
+
+* Put `gallery.html` in the folder that contains your photos. 
+* Don't rename it to `index.html` as the web server's own index.html is required in order to list the photos
+* Open gallery.html with a web browser, and enjoy
+
 
 -->
  <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
         body {
          color: white;
          background-color: black;
         }
         .thumb {  
-                position: relative;
-                display: inline-block;
-                width:128px; height:128px;                 
-                background-position: center;
-                background-repeat: no-repeat;
-                margin: 4px;
-                text-align: center;
-                font-size: 80%;
-                font-family: Helvetica, Arial, Sans-Serif;
-                text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;
+          position: relative;
+          display: inline-block;
+          width:160px; height:160px;                 
+          background-position: center;
+          background-repeat: no-repeat;
+          margin: 4px;
         }
         .thumb.loaded {
           background-size: contain;
@@ -36,6 +41,15 @@ LICENSE: MPLv2
           background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAuCAAAAACD2S9mAAABo0lEQVQ4y9WUT0REURTGv0bGxBMjyfNKpHUiI0kSaTGLkRjTn0Xb0WoWkRZJ0q5V25G0qDZjtEzaJHlimjIyxjCUJInXP6aMl6/FvJm59715o2V9q3ve/d3jvvOde4C/oSYAYKNdzy8zke4fG+X4Fog3dDj2VRQF4gRBBzGBYyGaoe4gzjgvRJ47hmxAkPfSHcO8UyRAKXBOPpLkthTHeWhL2vbIKSGc5FO7/WIjptFdDboMc9hZnxhTqrXUrrkgO1fW3ixur14+W/yBTuzP1SuykmdFeaW+D4EKYA64WRW3iC1XMwcsoq9Bn2SKLGblZpFqr+Fi9mP6EqprihWOAwhxyQ1QjQyQA7JGuwtxxCEAwLjDNUvL3LRWW4zVA8aYagZwA8CX4agT0J5fa972vj9pdsCjcwZA5LqUjpQb1/5O1rkD+BIkyYQC7HJDBvr40Arl3Kq67kfrA/slQmcY3tOq++c+TDIltSDTwAFrSgBp6X/ijCJGUYuISt1fYE/AlAhzsIcFgTDpzVFW3suSNCpWadeaOFSS5JeDKJHJ382x/6Mf6UgdoKCF3YQAAAAASUVORK5CYII=);
         }
        .thumb.folder {
+       }
+       .caption {
+         text-align: center;
+         font-size: 80%;
+         font-family: Helvetica, Arial, Sans-Serif;
+         text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;
+         position: absolute;
+         width:160px;
+         bottom:0px;
        }
        .foldericon {
          position: absolute;
@@ -93,6 +107,8 @@ var MAX_CONCURRENT_REQ = 4;
 var requestsInProgress = 0;
 var requestsQueued = [];
 
+var baseURL = "";
+
 var imageURLs = [];
 var imageInfo = {};
 var imageLoader; // background IMG tag for loading
@@ -120,8 +136,11 @@ function getEXIFThumb(url, arraybuffer, callback) {
                 var urlCreator = window.URL || window.webkitURL;
                 var imageURL = urlCreator.createObjectURL( blob );                
                 callback(imageURL);
-            } else { // just supply the full URL :(
-                callback(url);
+            } else { 
+                // just supply the full URL :( We use getImageThumbnailThrottled
+                // so we can make sure that full images get loaded AFTER all
+                // the thumbnails
+                getImageThumbnailThrottled(url, callback, true);
             }     
 }
 
@@ -137,20 +156,23 @@ function getImageThumbnail(url, callback) {
   xhr.send(null);
 }
 
-function getImageThumbnailThrottled(url, cb) {
+function getImageThumbnailThrottled(url, cb, passURL) {
   if (requestsInProgress < MAX_CONCURRENT_REQ) {
    requestsInProgress++;
    getImageThumbnail(url, function(url) {
      requestsInProgress--;
      if (requestsQueued.length) {
        var r = requestsQueued.shift();
-       getImageThumbnailThrottled(r.url, r.cb);
+       if (r.passURL)
+         r.cb(r.url);
+       else
+         getImageThumbnailThrottled(r.url, r.cb);
      }
      cb(url);
    });
   } else {
     console.log("Delayed "+url);
-    requestsQueued.push({url:url,cb:cb});
+    requestsQueued.push({url:url,cb:cb,passURL:passURL});
   }
 }
 
@@ -163,7 +185,7 @@ function addDeferredThumb(thumbs, href) {
   
 
   var im = document.createElement("DIV");
-  im.innerHTML = '<div>'+decodeURIComponent(niceName)+'</div>';
+  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
   im.className = "thumb wait";
   im.setAttribute("href", href);
   im.onclick = onThumbClicked;
@@ -183,15 +205,19 @@ function addFolder(thumbs, href) {
   if (href.length < baseURL.length) niceName = "[BACK]";
 
   var im = document.createElement("DIV");
-  im.innerHTML = '<div>'+decodeURIComponent(niceName)+'</div><div class="foldericon">&#128193;</div>';
+  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="foldericon">&#128193;</div>';
   im.className = "thumb folder";
   im.setAttribute("href", href);
   im.onclick = onFolderClicked;
   im = thumbs.appendChild(im);
 }
 
-var xhr = new XMLHttpRequest();
-xhr.onload = function() {
+if (window.location.search.length>1)
+  loadAllImages(window.location.search.substr(1));
+else
+  loadAllImages("");
+
+function processIndexPage() {
   console.log(this.responseXML.title);
   var thumbs = document.getElementById("thumbs");
   var elements = this.responseXML.getElementsByTagName("a");
@@ -208,21 +234,30 @@ xhr.onload = function() {
     var href = elements[i].href;
     var hrefl = href.toLowerCase();
     if (hrefl.substr(-4)==".jpg" || hrefl.substr(-5)==".jpeg") {      
+      if (handled.indexOf(href)>=0) continue;
+      handled.push(href);
       imageURLs.push(href);
       imageInfo[href] = { thumb : "" };
       //  document.getElementById("im").src = url;
       addDeferredThumb(thumbs, href);
     }
   }
+  document.getElementById("left").setAttribute("style","visibility:inherit");
+  document.getElementById("right").setAttribute("style","visibility:inherit"); 
+  document.getElementById("maximise").setAttribute("style","visibility:inherit");
+  document.getElementById("modal").setAttribute("style","visibility:hidden");
 }
 
-var baseURL = "";
-if (window.location.hash.length>1)
-  baseURL = window.location.hash.substr(1);
 
-xhr.open("GET", baseURL);
-xhr.responseType = "document";
-xhr.send();
+
+function loadAllImages(url) {
+  var xhr = new XMLHttpRequest();
+  xhr.onload = processIndexPage;
+  baseURL = url;
+  xhr.open("GET", baseURL);
+  xhr.responseType = "document";
+  xhr.send();
+}
 
 function loadImage(url) {
   document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")");  
@@ -259,8 +294,7 @@ function onFolderClicked(e) {
   e.preventDefault();
   var url = e.currentTarget.getAttribute("href");
   console.log("Clicked "+url);  
-  window.location.replace(window.location.pathname+"#"+url);
-  window.location.reload(true);
+  window.location.assign(window.location.pathname+"?"+url);
 }
 
 
@@ -294,17 +328,21 @@ window.onload = function() {
   document.getElementById("left").onclick = function(e) { onChangeModal(e,-1); };
   document.getElementById("right").onclick = function(e) { onChangeModal(e,+1); };
   document.getElementById("maximise").onclick = onMaximiseClicked;
+  document.addEventListener("keydown", function (e) {
+    if (e.keyCode==37) onChangeModal(e,-1);
+    if (e.keyCode==39) onChangeModal(e,1);
+  });
 };
 
 </script>
 
-<div id="modal" style="visibility:hidden" class="fullscreen">
-  <div id="bigimage" class="wait"></div>
-  <div id="left">&#9664;</div>
-  <div id="right">&#9654;</div>
+<div id="modal" class="fullscreen">
+  <div id="bigimage" style="visibility:hidden"></div>
+  <div id="left" style="visibility:hidden">&#9664;</div>
+  <div id="right" style="visibility:hidden">&#9654;</div>
   <div id="wait">&#8987;</div>
-  <div id="errored">&#9888;</div>
-  <div id="maximise">&#x2798;</div>
+  <div id="errored" style="visibility:hidden">&#9888;</div>
+  <div id="maximise" style="visibility:hidden">&#x2798;</div>
 </div>
 
 </div>
