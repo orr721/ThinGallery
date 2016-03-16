@@ -7,6 +7,10 @@ A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range h
 and your web server's own index pages to quickly display thumbnails for a directory without
 having to fully load every image file, and without needing ANY server-side scripting.
 
+![Original Index Page](screenshots/index.png)
+![Gallery list](screenshots/gallery1.png)
+![Gallery image](screenshots/gallery2.png)
+
 Why?
 ----
 
