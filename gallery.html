@@ -28,6 +28,7 @@ Usage
          color: white;
          background-color: black;
         }
+ 	a > .thumb { color: #fff; }
         .thumb {  
           position: relative;
           display: inline-block;
@@ -36,6 +37,7 @@ Usage
           background-repeat: no-repeat;
           background-size: contain;
           margin: 4px;
+          cursor: pointer;
         }
        .caption {
          text-align: center;
@@ -81,9 +83,9 @@ Usage
         #left,#right,#wait,#errored {
            top: 50%; transform: translateY(-50%);
         }
-        #left {  left:10px;  }
-        #right { right:10px; }
-        #maximise { right:10px;bottom:10px; }
+        #left {  left:10px; cursor:pointer; }
+        #right { right:10px; cursor:pointer; }
+        #maximise { right:10px;bottom:10px; cursor:pointer; }
         #wait,#errored { 
           left:50%; 
           transform: translateX(-50%);      
@@ -258,12 +260,10 @@ function addFolder(thumbs, href) {
     niceName = niceName.substr(niceName.lastIndexOf("/")+1);
   if (href.length < baseURL.length) niceName = "[BACK]";
 
-  var im = document.createElement("DIV");
-  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">&#128193;</div>';
-  im.className = "thumb folder";
-  im.setAttribute("href", href);
-  im.onclick = onFolderClicked;
-  im = thumbs.appendChild(im);
+  var a = document.createElement("A");
+  a.href = window.location.pathname+"?"+href;
+  a.innerHTML = '<div class="thumb folder"><div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">&#128193;</div></div>';
+  thumbs.appendChild(a);
 }
 
 function processIndexPage() {
@@ -337,14 +337,6 @@ function onThumbClicked(e) {
   console.log("Clicked "+url);  
   loadImage(url);
 }
-
-function onFolderClicked(e) {
-  e.preventDefault();
-  var url = e.currentTarget.getAttribute("href");
-  console.log("Clicked "+url);  
-  window.location.assign(window.location.pathname+"?"+url);
-}
-
 
 function onModalClicked(e) {
   e.preventDefault();
