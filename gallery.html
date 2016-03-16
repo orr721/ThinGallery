@@ -144,14 +144,15 @@ function getEXIFThumb(url, arraybuffer, callback) {
             }     
 }
 
-function getImageThumbnail(url, callback) {
+function getImageThumbnail(url, finishedCb, thumbCb) {
   //console.log("Loading "+url);
   var xhr = new XMLHttpRequest;
   xhr.open('GET', url, true);
   xhr.responseType = "arraybuffer";
   xhr.setRequestHeader('Range', 'bytes=0-30000');
   xhr.onload = function (oEvent) {
-    getEXIFThumb(url, xhr.response, callback);
+    getEXIFThumb(url, xhr.response, thumbCb);
+    finishedCb();
   };
   xhr.send(null);
 }
@@ -168,10 +169,9 @@ function getImageThumbnailThrottled(url, cb, passURL) {
        else
          getImageThumbnailThrottled(r.url, r.cb);
      }
-     cb(url);
-   });
+   }, cb);
   } else {
-    console.log("Delayed "+url);
+    //console.log("Delayed "+url);
     requestsQueued.push({url:url,cb:cb,passURL:passURL});
   }
 }
