@@ -10,6 +10,7 @@ and your web server's own index pages to quickly display thumbnails for a direct
 having to fully load every image file, and without needing ANY server-side scripting.
 
 [See it in action!](http://www.pur3.co.uk/gallery)
+----------------------------------
 
 ![Original Index Page](screenshots/index.png)
 ![Gallery list](screenshots/gallery1.png)
