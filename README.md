@@ -56,7 +56,6 @@ These are just ideas - if you fancy adding them then please have a go and issue 
 
 * Find some Unicode that actually works nicely on all platforms
 * Relative paths when folders clicked on
-* Better EXIF decoding (the current way is nasty and fails sometimes)
 * Read image rotation from EXIF
 * Allow Delete + Rotate, and store the data in a cookie. Allow export as a shell script that would use ImageMagick to perform the operations.
 
