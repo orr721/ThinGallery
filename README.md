@@ -37,7 +37,7 @@ How it works
 When there's no `index.*` page, the web server creates its own HTML listing of files, and
 the gallery loads this and scans it in order to find out what images are available.
 
-For each JPEG image, it requests *just the first 20,000 bytes*, which should contain the
+For each JPEG image, it requests *just the first 30,000 bytes*, which should contain the
 image's thumbnail if it had one. If it's there, it is used - otherwise the entire image
 is loaded (once all the other thumbnails have been scanned).
 
