@@ -120,7 +120,7 @@ function getEXIFThumb(url, arraybuffer, callback) {
     return callback(url);
   }
   var len = (arr[offs+2]<<8)|arr[offs+3];
-  if (len < arr.length) console.log("EXIF is "+len+" bytes long but we have only "+arr.length);
+  if (len > arr.length) console.log("EXIF is "+len+" bytes long but we have only "+arr.length);
   if (arr[offs+4]!=0x45 || arr[offs+5]!=0x78 || arr[offs+6]!=0x69 || arr[offs+7]!=0x66) {
     console.warn(url+" doesn't have 'Exif' marker at "+offs);
     return callback(url);
@@ -192,7 +192,7 @@ function getImageThumbnail(url, finishedCb, thumbCb) {
   var xhr = new XMLHttpRequest;
   xhr.open('GET', url, true);
   xhr.responseType = "arraybuffer";
-  xhr.setRequestHeader('Range', 'bytes=0-30000');
+  xhr.setRequestHeader('Range', 'bytes=0-30500');
   xhr.onload = function (oEvent) {
     getEXIFThumb(url, xhr.response, thumbCb);
     finishedCb();
@@ -203,13 +203,14 @@ function getImageThumbnail(url, finishedCb, thumbCb) {
 function getImageThumbnailThrottled(url, cb, passURL) {
   if (requestsInProgress < MAX_CONCURRENT_REQ) {
    requestsInProgress++;
-   getImageThumbnail(url, function(url) {
+   getImageThumbnail(url, function finishedCb() {
      requestsInProgress--;
      if (requestsQueued.length) {
        var r = requestsQueued.shift();
-       if (r.passURL)
+       if (r.passURL) {
          r.cb(r.url);
-       else
+         setTimeout(finishedCb, 100);
+       } else
          getImageThumbnailThrottled(r.url, r.cb);
      }
    }, cb);
