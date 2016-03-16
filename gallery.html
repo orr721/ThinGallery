@@ -32,16 +32,9 @@ Usage
           width:160px; height:160px;                 
           background-position: center;
           background-repeat: no-repeat;
+          background-size: contain;
           margin: 4px;
         }
-        .thumb.loaded {
-          background-size: contain;
-        }
-        .thumb.wait {           
-          background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAuCAAAAACD2S9mAAABo0lEQVQ4y9WUT0REURTGv0bGxBMjyfNKpHUiI0kSaTGLkRjTn0Xb0WoWkRZJ0q5V25G0qDZjtEzaJHlimjIyxjCUJInXP6aMl6/FvJm59715o2V9q3ve/d3jvvOde4C/oSYAYKNdzy8zke4fG+X4Fog3dDj2VRQF4gRBBzGBYyGaoe4gzjgvRJ47hmxAkPfSHcO8UyRAKXBOPpLkthTHeWhL2vbIKSGc5FO7/WIjptFdDboMc9hZnxhTqrXUrrkgO1fW3ixur14+W/yBTuzP1SuykmdFeaW+D4EKYA64WRW3iC1XMwcsoq9Bn2SKLGblZpFqr+Fi9mP6EqprihWOAwhxyQ1QjQyQA7JGuwtxxCEAwLjDNUvL3LRWW4zVA8aYagZwA8CX4agT0J5fa972vj9pdsCjcwZA5LqUjpQb1/5O1rkD+BIkyYQC7HJDBvr40Arl3Kq67kfrA/slQmcY3tOq++c+TDIltSDTwAFrSgBp6X/ijCJGUYuISt1fYE/AlAhzsIcFgTDpzVFW3suSNCpWadeaOFSS5JeDKJHJ382x/6Mf6UgdoKCF3YQAAAAASUVORK5CYII=);
-        }
-       .thumb.folder {
-       }
        .caption {
          text-align: center;
          font-size: 80%;
@@ -51,7 +44,7 @@ Usage
          width:160px;
          bottom:0px;
        }
-       .foldericon {
+       .thumbicon {
          position: absolute;
          font-size:48px;
          left:50%;
@@ -185,14 +178,15 @@ function addDeferredThumb(thumbs, href) {
   
 
   var im = document.createElement("DIV");
-  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
-  im.className = "thumb wait";
+  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">&#8987;</div>';
+  im.className = "thumb";
   im.setAttribute("href", href);
   im.onclick = onThumbClicked;
   im = thumbs.appendChild(im);
   getImageThumbnailThrottled(href, function(url) {
     imageInfo[href].thumb = url;
-    im.className = "thumb loaded";
+    im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
+    im.className = "thumb";
     //im.src = url;        
     im.setAttribute("style","background-image:url("+url+")");
   });
@@ -205,7 +199,7 @@ function addFolder(thumbs, href) {
   if (href.length < baseURL.length) niceName = "[BACK]";
 
   var im = document.createElement("DIV");
-  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="foldericon">&#128193;</div>';
+  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">&#128193;</div>';
   im.className = "thumb folder";
   im.setAttribute("href", href);
   im.onclick = onFolderClicked;
