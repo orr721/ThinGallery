@@ -7,7 +7,7 @@ Copyright 2016 Gordon Williams, gw@pur3.co.uk (Licensed as MPLv2)
 
 A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range headers, 
 and your web server's own index pages to quickly display thumbnails for a directory without
-having to fully load every image file, and without needing ANY server-side scripting.
+having to fully load every image file, and without any server-side scripting.
 
 [See it in action!](http://www.pur3.co.uk/gallery/gallery.html)
 ----------------------------------
@@ -19,10 +19,11 @@ having to fully load every image file, and without needing ANY server-side scrip
 Why?
 ----
 
-* You may have access to a web server, but no ability to upload/execute scripts on it
-* You may not want to execute scripts on your server for security reasons
-* **You might have a NAS Box** - this may not support common server-side 
+* You have access to a web server, but no ability to upload/execute scripts on it
+* You don't want to execute scripts on your server for security/performance reasons
+* **You have a NAS box** - this may not support common server-side 
 languages like PHP, and even if it does, it may be too slow to resize your images.
+* **You want to serve a photo gallery off your phone** with a basic web server app.
 
 Setup
 -----
@@ -46,21 +47,22 @@ How it works
 When there's no `index.*` page, the web server creates its own HTML listing of files, and
 the gallery loads this and scans it in order to find out what images are available.
 
-For each JPEG image, it requests *just the first 30,000 bytes*, which should contain the
-image's thumbnail if it had one. If it's there, it is used - otherwise the entire image
+For each JPEG image, it requests *just the first 30,000 bytes*, which will usually contain
+the image's thumbnail if it had one. If it's there, it is used - otherwise the entire image
 is loaded (once all the other thumbnails have been scanned).
 
 This means that in a directory of photos from a digital camera, instead of loading each
-~5MB image file (and using up all your bandwidth and RAM), the gallery is only loading 
-one 250th of the amount of data, making it much faster to browse your files.
+~5MB image file (and using up all your bandwidth and RAM), the gallery is loading less 
+that a 150th of the amount of data, making it much faster to browse your files.
 
 Future Additions
 ----------------
 
-These are just ideas - if you fancy adding them then please have a go and issue a Pull Request!
+These are just some ideas - if you fancy adding them then please have a go and issue a Pull Request!
 
-* Find some Unicode that actually works nicely on all platforms
-* Relative paths when folders clicked on
-* Read image rotation from EXIF
-* Allow Delete + Rotate, and store the data in a cookie. Allow export as a shell script that would use ImageMagick to perform the operations.
+* Find some Unicode that actually works nicely on all platforms (folders don't work on Linux)
+* Relative paths used after `gallery.html?` when folders are clicked on
+* Read image rotation from EXIF and apply it to thumbnails/images
+* Allow Delete + Rotate, and store the data in a cookie. Allow export as a shell script that 
+would use ImageMagick to perform the operations when run on the server.
 
