@@ -33,11 +33,9 @@ Usage
           position: relative;
           display: inline-block;
           width:160px; height:160px;                 
-          background-position: center;
-          background-repeat: no-repeat;
-          background-size: contain;
           margin: 4px;
           cursor: pointer;
+          overflow: hidden;
         }
        .caption {
          text-align: center;
@@ -54,6 +52,13 @@ Usage
          left:50%;
          top:50%; 
          transform: translateX(-50%) translateY(-50%);
+       }
+       .thumbimage {
+          position:absolute;top:0px;left:0px;
+          width:160px; height:160px;                 
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: contain;
        }
        .fullscreen {
          position: absolute;
@@ -156,15 +161,19 @@ function getEXIFThumb(url, arraybuffer, callback) {
   }
   offs += 2;
   // iterate over tags
+  var thumbOrientation;
   for (var i=0;i<tags;i++) {
     var tag = rd16(offs+i*12);
-   //console.log(tag.toString(16)); // 0x0112 is orientation
-  }
+    // console.log(tag.toString(16));
+    if (tag==0x0112) { // JPEG orientation
+      thumbOrientation = rd32(offs+i*12+8);
+    } 
+ }
   // skip to next IFD
   offs += rd32(offs + tags*12);
   var tags = rd16(offs);
-  if (tags>100) {
-    console.warn(url+" too many EXIF tags in second IFD!");
+  if (tags>300) {
+    console.warn(url+" too many EXIF tags ("+tags+") in second IFD!");
     return callback(url);
   }
   offs += 4;
@@ -181,11 +190,13 @@ function getEXIFThumb(url, arraybuffer, callback) {
     var data = arr.subarray(thumbOffset, thumbOffset+thumbLen);
     var blob = new Blob( [ data ], { type: "image/jpeg" } );
     var urlCreator = window.URL || window.webkitURL;
-    var imageURL = urlCreator.createObjectURL( blob );                
-    callback(imageURL);
+    var imageURL = urlCreator.createObjectURL( blob );
+    var rotation = 0;
+    if (thumbOrientation==6) rotation = 90;                
+    callback(imageURL, rotation);
   } else {
     // No thumbnail - just supply the full URL :( 
-    callback(url)
+    callback(url, 0);
   }
 }
 
@@ -229,12 +240,11 @@ function addDeferredThumb(thumbs, href) {
   else
     niceName = href;
 
-  function thumbLoaded(url) {
+  function thumbLoaded(url, rotate) {
     imageInfo[href].thumb = url;
-    im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
-    im.className = "thumb";
-    //im.src = url;        
-    im.setAttribute("style","background-image:url("+url+")");
+    im.innerHTML = 
+      '<div class="thumbimage" style="background-image:url('+url+');transform:rotate('+rotate+'deg)"></div>'+
+      '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
   }   
 
   var im = document.createElement("DIV");
@@ -243,13 +253,13 @@ function addDeferredThumb(thumbs, href) {
   im.setAttribute("href", href);
   im.onclick = onThumbClicked;
   im = thumbs.appendChild(im);
-  getImageThumbnailThrottled(href, function(url) {
+  getImageThumbnailThrottled(href, function(url,rotate) {
     if (url == href) {
       // We use getImageThumbnailThrottled so we can make sure
       // that full images get loaded AFTER all the thumbnails
       getImageThumbnailThrottled(url, thumbLoaded, true);
     } else {
-      thumbLoaded(url);
+      thumbLoaded(url, rotate);
     }
   });
 }
@@ -267,7 +277,7 @@ function addFolder(thumbs, href) {
 }
 
 function processIndexPage() {
-  console.log(this.responseXML.title);
+  //console.log(this.responseXML.title);
   var thumbs = document.getElementById("thumbs");
   var elements = this.responseXML.getElementsByTagName("a");
   var handled = [];  
