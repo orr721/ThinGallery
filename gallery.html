@@ -85,22 +85,28 @@ Usage
          background-repeat: no-repeat;          
          background-size: contain;
         }
-        #left,#right,#wait,#errored,#maximise {
+        #loadingimage {
+         position: absolute;
+         width: 100%;
+         min-height: 100%;
+         left: 0;
+         top: 0;
+         background-position: center;
+         background-repeat: no-repeat;          
+         background-size: contain;
+        }
+        #left,#right,#maximise {
           position:absolute;
           font-size:96px;
           font-weight: bold;          
         }        
-        #left,#right,#wait,#errored {
+        #left,#right {
            top: 50%; transform: translateY(-50%);
         }
         #left {  left:10px; cursor:pointer; }
         #right { right:10px; cursor:pointer; }
         #maximise { right:10px;bottom:10px; cursor:pointer; }
-        #wait,#errored { 
-          left:50%; 
-          transform: translateX(-50%);      
-        }
-        #left,#right,#wait,#errored,#maximise {
+        #left,#right,#maximise {
           text-shadow: 4px 0 0 #000, 0 -4px 0 #000, 0 4px 0 #000, -4px 0 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, 3px 3px 0 #000, -3px -3px 0 #000;;
         }
    </style>
@@ -118,7 +124,8 @@ var baseURL = "";
 
 var imageURLs = [];
 var imageInfo = {};
-var imageLoader; // background IMG tag for loading
+var showingImage; // currently loading/showing image
+var imageLoader, nextImageLoader, prevImageLoader;
 
 // Get a thumbnail from EXIF data
 function getThumbFromFullImage(url, callback) {
@@ -355,28 +362,21 @@ function loadAllImages(url) {
 
 function loadImage(url) {
   document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")");  
-  if (imageLoader) {
-    imageLoader.onload=undefined;
-    imageLoader.onerror=undefined;
-  }
-  document.getElementById("errored").setAttribute("style","visibility:hidden");
-  imageLoader = document.createElement("IMG");
   imageLoader.onload = function() {
-    console.log("Loaded "+url);
-    document.getElementById("wait").setAttribute("style","visibility:hidden");
-    document.getElementById("bigimage").setAttribute("style","background-image:url("+url+")");
-  };
-  imageLoader.onerror = function() {
-    console.log("Error Loading "+url);
-    document.getElementById("errored").setAttribute("style","visibility:inherit");
+    console.log("Full image loaded. Loading next and prev.");
+    var i = imageURLs.indexOf(showingImage);
+    if (i>=0) { 
+      if (i>0) prevImageLoader.src = imageURLs[i-1];
+      if (i<imageURLs.length-1) nextImageLoader.src = imageURLs[i+1];
+    }
   };
   imageLoader.src = url;
+  document.getElementById("loadingimage").setAttribute("style","background-image:url("+url+")");  
+  showingImage = url;
 }
 
 function onThumbClicked(e) {
   e.preventDefault();
-  document.getElementById("wait").setAttribute("style","visibility:inherit");
-  document.getElementById("errored").setAttribute("style","visibility:hidden");
   document.getElementById("modal").setAttribute("style","display:block;top:"+window.scrollY+"px");
 
   var url = e.currentTarget.getAttribute("href");
@@ -389,27 +389,32 @@ function onModalClicked(e) {
   if (e.target.id=="left" || e.target.id=="right" || e.target.id=="maximise") return;
   document.getElementById("modal").setAttribute("style","visibility:hidden");
   document.getElementById("bigimage").setAttribute("style","");
+  document.getElementById("loadingimage").setAttribute("style","");
+  showingImage = null;
 }
 
 function onChangeModal(e, dir) {
   e.preventDefault();
-  var i = imageURLs.indexOf(imageLoader.src);
+  var i = imageURLs.indexOf(showingImage);
   if (i<0) i=0;
   i += dir;
   if (i<0) i+= imageURLs.length;
   if (i>=imageURLs.length) i-= imageURLs.length;
-  document.getElementById("wait").setAttribute("style","visibility:inherit");  
   loadImage(imageURLs[i]);
 }
 
 function onMaximiseClicked(e) {
   e.preventDefault();
-  if (!imageLoader || !imageLoader.src) return;
-  window.open(imageLoader.src, '_blank').focus();
+  if (!showingImage) return;
+  window.open(showingImage.src, '_blank').focus();
 }
 
 window.onscroll = onModalClicked;
-window.onload = function() {  
+window.onload = function() {
+  imageLoader = document.createElement("IMG");
+  nextImageLoader = document.createElement("IMG");
+  prevImageLoader = document.createElement("IMG");
+  
   document.getElementById("modal").onclick = onModalClicked;
   document.getElementById("left").onclick = function(e) { onChangeModal(e,-1); };
   document.getElementById("right").onclick = function(e) { onChangeModal(e,+1); };
@@ -436,10 +441,9 @@ window.onload = function() {
 
 <div id="modal" class="fullscreen">
   <div id="bigimage" style="visibility:hidden"></div>
+  <div id="loadingimage" style="visibility:hidden"></div>
   <div id="left" style="visibility:hidden">&#9664;</div>
   <div id="right" style="visibility:hidden">&#9654;</div>
-  <div id="wait">&#8987;</div>
-  <div id="errored" style="visibility:hidden">&#9888;</div>
   <div id="maximise" style="visibility:hidden">&#x2798;</div>
 </div>
 

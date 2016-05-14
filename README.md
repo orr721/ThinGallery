@@ -49,7 +49,7 @@ the gallery loads this and scans it in order to find out what images are availab
 
 For each JPEG image, it requests *just the first 30,000 bytes*, which will usually contain
 the image's thumbnail if it had one. If it's there, it is used - otherwise the entire image
-is loaded (once all the other thumbnails have been scanned).
+is loaded and resized (once all the other thumbnails have been scanned).
 
 This means that in a directory of photos from a digital camera, instead of loading each
 ~5MB image file (and using up all your bandwidth and RAM), the gallery is loading less 
@@ -62,7 +62,6 @@ These are just some ideas - if you fancy adding them then please have a go and i
 
 * Find some Unicode that actually works nicely on all platforms (folders don't work on Linux)
 * Relative paths used after `gallery.html?` when folders are clicked on
-* Read image rotation from EXIF and apply it to thumbnails/images
 * Allow Delete + Rotate, and store the data in a cookie. Allow export as a shell script that 
 would use ImageMagick to perform the operations when run on the server.
 
