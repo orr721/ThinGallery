@@ -240,17 +240,8 @@ function getImageThumbnail(url, finishedCb, thumbCb) {
   xhr.setRequestHeader('Range', 'bytes=0-30500');
   xhr.onload = function (oEvent) {
     getEXIFThumb(url, xhr.response, function(url, rotation) {
-      if (rotation === undefined) {
-        /* No thumbnail - get image and resize it - if we used the
-           full image we'd just run out of memory */
-        getThumbFromFullImage(url, function(url) {
-          thumbCb(url);
-          finishedCb();
-        });
-      } else {
-        thumbCb(url, rotation);
-        finishedCb();
-      }
+      thumbCb(url, rotation);
+      finishedCb();
     });
   };
   xhr.send(null);
@@ -259,17 +250,23 @@ function getImageThumbnail(url, finishedCb, thumbCb) {
 function getImageThumbnailThrottled(url, cb, passURL) {
   if (requestsInProgress < MAX_CONCURRENT_REQ) {
    requestsInProgress++;
-   getImageThumbnail(url, function finishedCb() {
+
+   function finishedCb() {
      requestsInProgress--;
      if (requestsQueued.length) {
        var r = requestsQueued.shift();
-       if (r.passURL) {
-         r.cb(r.url);
-         setTimeout(finishedCb, 100);
-       } else
-         getImageThumbnailThrottled(r.url, r.cb);
+       getImageThumbnailThrottled(r.url, r.cb);
      }
-   }, cb);
+   }
+
+   if (passURL) {
+     getThumbFromFullImage(url, function(url) {
+       thumbCb(url);
+       finishedCb();
+     });
+   } else {
+     getImageThumbnail(url, finishedCb, cb);
+   }
   } else {
     //console.log("Delayed "+url);
     requestsQueued.push({url:url,cb:cb,passURL:passURL});
