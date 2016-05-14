@@ -377,11 +377,14 @@ function loadImage(url) {
 
 function onThumbClicked(e) {
   e.preventDefault();
-  document.getElementById("modal").setAttribute("style","display:block;top:"+window.scrollY+"px");
-
   var url = e.currentTarget.getAttribute("href");
   console.log("Clicked "+url);  
-  loadImage(url);
+  if (e.ctrlKey) {
+    window.open(url, '_blank');
+  } else {
+    document.getElementById("modal").setAttribute("style","display:block;top:"+window.scrollY+"px");
+    loadImage(url);
+  }
 }
 
 function onModalClicked(e) {
@@ -406,7 +409,7 @@ function onChangeModal(e, dir) {
 function onMaximiseClicked(e) {
   e.preventDefault();
   if (!showingImage) return;
-  window.open(showingImage.src, '_blank').focus();
+  window.open(showingImage, '_blank').focus();
 }
 
 window.onscroll = onModalClicked;
