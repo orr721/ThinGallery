@@ -109,7 +109,8 @@ Usage
 
 <div id="thumbs"></div>
 <script>
-var MAX_CONCURRENT_REQ = 4;
+var THUMB_SIZE = 240; // size when we have to load the full image and resize it
+var MAX_CONCURRENT_REQ = 2;
 var requestsInProgress = 0;
 var requestsQueued = [];
 
@@ -118,6 +119,25 @@ var baseURL = "";
 var imageURLs = [];
 var imageInfo = {};
 var imageLoader; // background IMG tag for loading
+
+// Get a thumbnail from EXIF data
+function getThumbFromFullImage(url, callback) {
+  var img = document.createElement('img');
+  img.onload = function () {      
+    var oc = document.createElement('canvas'),
+        octx = oc.getContext('2d');
+    if (img.width > img.height) {
+      oc.width = THUMB_SIZE;
+      oc.height = THUMB_SIZE * img.height / img.width;
+    } else {
+      oc.width = THUMB_SIZE * img.width / img.height;
+      oc.height = THUMB_SIZE;
+    }
+    octx.drawImage(img, 0, 0, oc.width, oc.height);
+    callback(oc.toDataURL());
+  };
+  img.src = url;
+}
 
 // Get a thumbnail from EXIF data
 function getEXIFThumb(url, arraybuffer, callback) {
@@ -200,8 +220,8 @@ function getEXIFThumb(url, arraybuffer, callback) {
     if (thumbOrientation==6) rotation = 90;                
     callback(imageURL, rotation);
   } else {
-    // No thumbnail - just supply the full URL :( 
-    callback(url, 0);
+    /* No thumbnail */
+    callback(url);
   }
 }
 
@@ -212,8 +232,19 @@ function getImageThumbnail(url, finishedCb, thumbCb) {
   xhr.responseType = "arraybuffer";
   xhr.setRequestHeader('Range', 'bytes=0-30500');
   xhr.onload = function (oEvent) {
-    getEXIFThumb(url, xhr.response, thumbCb);
-    finishedCb();
+    getEXIFThumb(url, xhr.response, function(url, rotation) {
+      if (rotation === undefined) {
+        /* No thumbnail - get image and resize it - if we used the
+           full image we'd just run out of memory */
+        getThumbFromFullImage(url, function(url) {
+          thumbCb(url);
+          finishedCb();
+        });
+      } else {
+        thumbCb(url, rotation);
+        finishedCb();
+      }
+    });
   };
   xhr.send(null);
 }
