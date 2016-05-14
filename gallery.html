@@ -24,6 +24,11 @@ Usage
  <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+:root {
+  --thumb-width: 240px;
+  --thumb-height: 240px;
+}
+
         body {
          color: white;
          background-color: black;
@@ -32,7 +37,7 @@ Usage
         .thumb {  
           position: relative;
           display: inline-block;
-          width:160px; height:160px;                 
+          width:var(--thumb-width); height:var(--thumb-height);                 
           margin: 4px;
           cursor: pointer;
           overflow: hidden;
@@ -43,7 +48,7 @@ Usage
          font-family: Helvetica, Arial, Sans-Serif;
          text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;
          position: absolute;
-         width:160px;
+         width:var(--thumb-width);
          bottom:0px;
        }
        .thumbicon {
@@ -55,7 +60,7 @@ Usage
        }
        .thumbimage {
           position:absolute;top:0px;left:0px;
-          width:160px; height:160px;                 
+          width:var(--thumb-width); height:var(--thumb-height);                 
           background-position: center;
           background-repeat: no-repeat;
           background-size: contain;
