@@ -255,13 +255,13 @@ function getImageThumbnailThrottled(url, cb, passURL) {
      requestsInProgress--;
      if (requestsQueued.length) {
        var r = requestsQueued.shift();
-       getImageThumbnailThrottled(r.url, r.cb);
+       getImageThumbnailThrottled(r.url, r.cb, r.passURL);
      }
    }
 
    if (passURL) {
      getThumbFromFullImage(url, function(url) {
-       thumbCb(url);
+       cb(url);
        finishedCb();
      });
    } else {
