@@ -8,14 +8,14 @@ https://github.com/gfwilliams/ThinGallery
 
 Copyright 2016 Gordon Williams, gw@pur3.co.uk (Licensed as MPLv2)
 
-A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range headers, 
+A single-file gallery webpage. This uses EXIF thumbnails, XMLHttpRequest Range headers,
 and your web server's own index pages to quickly display thumbnails for a directory without
 having to fully load every image file, and without needing ANY server-side scripting.
 
 Usage
 -----
 
-* Put `gallery.html` in the folder that contains your photos. 
+* Put `gallery.html` in the folder that contains your photos.
 * Don't rename it to `index.html` as the web server's own index.html is required in order to list the photos
 * Open gallery.html with a web browser, and enjoy
 
@@ -34,10 +34,10 @@ Usage
          background-color: black;
         }
  	a > .thumb { color: #fff; }
-        .thumb {  
+        .thumb {
           position: relative;
           display: inline-block;
-          width:var(--thumb-width); height:var(--thumb-height);                 
+          width:var(--thumb-width); height:var(--thumb-height);
           margin: 4px;
           cursor: pointer;
           overflow: hidden;
@@ -55,12 +55,12 @@ Usage
          position: absolute;
          font-size:48px;
          left:50%;
-         top:50%; 
+         top:50%;
          transform: translateX(-50%) translateY(-50%);
        }
        .thumbimage {
           position:absolute;top:0px;left:0px;
-          width:var(--thumb-width); height:var(--thumb-height);                 
+          width:var(--thumb-width); height:var(--thumb-height);
           background-position: center;
           background-repeat: no-repeat;
           background-size: contain;
@@ -73,7 +73,7 @@ Usage
          top: 0;
         }
         #modal {
-          background-color: rgba(0,0,0,0.8);          
+          background-color: rgba(0,0,0,0.8);
         }
         #bigimage {
          position: absolute;
@@ -82,7 +82,7 @@ Usage
          left: 0;
          top: 0;
          background-position: center;
-         background-repeat: no-repeat;          
+         background-repeat: no-repeat;
          background-size: contain;
         }
         #loadingimage {
@@ -92,14 +92,14 @@ Usage
          left: 0;
          top: 0;
          background-position: center;
-         background-repeat: no-repeat;          
+         background-repeat: no-repeat;
          background-size: contain;
         }
         #left,#right,#maximise {
           position:absolute;
           font-size:96px;
-          font-weight: bold;          
-        }        
+          font-weight: bold;
+        }
         #left,#right {
            top: 50%; transform: translateY(-50%);
         }
@@ -130,7 +130,7 @@ var imageLoader, nextImageLoader, prevImageLoader;
 // Get a thumbnail from EXIF data
 function getThumbFromFullImage(url, callback) {
   var img = document.createElement('img');
-  img.onload = function () {      
+  img.onload = function () {
     var oc = document.createElement('canvas'),
         octx = oc.getContext('2d');
     if (img.width > img.height) {
@@ -199,7 +199,7 @@ function getEXIFThumb(url, arraybuffer, callback) {
     // console.log(tag.toString(16));
     if (tag==0x0112) { // JPEG orientation
       thumbOrientation = rd32(offs+i*12+8);
-    } 
+    }
  }
   // skip to next IFD
   offs += rd32(offs + tags*12);
@@ -213,18 +213,18 @@ function getEXIFThumb(url, arraybuffer, callback) {
   var thumbOffset, thumbLen;
   for (var i=0;i<tags;i++) {
     var tag = rd16(offs+i*12);
-    //console.log(tag.toString(16)); 
+    //console.log(tag.toString(16));
     if (tag==0x0201) thumbOffset = rd32(offs + i*12 + 8)+12; // ?
     if (tag==0x0202) thumbLen = rd32(offs + i*12 + 8);
   }
   if (thumbOffset && thumbLen) {
-    //console.log(thumbOffset,thumbLen,arr[thumbOffset].toString(16),arr[thumbOffset+1].toString(16));
+    //console.log("Thumb at",thumbOffset,"size",thumbLen,"tag",arr[thumbOffset].toString(16),arr[thumbOffset+1].toString(16));
     var data = arr.subarray(thumbOffset, thumbOffset+thumbLen);
     var blob = new Blob( [ data ], { type: "image/jpeg" } );
     var urlCreator = window.URL || window.webkitURL;
     var imageURL = urlCreator.createObjectURL( blob );
     var rotation = 0;
-    if (thumbOrientation==6) rotation = 90;                
+    if (thumbOrientation==6) rotation = 90;
     callback(imageURL, rotation);
   } else {
     /* No thumbnail */
@@ -237,7 +237,7 @@ function getImageThumbnail(url, finishedCb, thumbCb) {
   var xhr = new XMLHttpRequest;
   xhr.open('GET', url, true);
   xhr.responseType = "arraybuffer";
-  xhr.setRequestHeader('Range', 'bytes=0-30500');
+  xhr.setRequestHeader('Range', 'bytes=0-60000');
   xhr.onload = function (oEvent) {
     getEXIFThumb(url, xhr.response, function(url, rotation) {
       thumbCb(url, rotation);
@@ -282,10 +282,10 @@ function addDeferredThumb(thumbs, href) {
 
   function thumbLoaded(url, rotate) {
     imageInfo[href].thumb = url;
-    im.innerHTML = 
+    im.innerHTML =
       '<div class="thumbimage" style="background-image:url('+url+');transform:rotate('+rotate+'deg)"></div>'+
       '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
-  }   
+  }
 
   var im = document.createElement("DIV");
   im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">&#8987;</div>';
@@ -320,9 +320,9 @@ function processIndexPage() {
   //console.log(this.responseXML.title);
   var thumbs = document.getElementById("thumbs");
   var elements = this.responseXML.getElementsByTagName("a");
-  var handled = [];  
+  var handled = [];
   for (var i=0;i<elements.length;i++) {
-    var href = elements[i].href; 
+    var href = elements[i].href;
     if (handled.indexOf(href)>=0) continue;
     if (href[href.length-1]=="/" && href!==baseURL) {
       handled.push(href);
@@ -332,7 +332,7 @@ function processIndexPage() {
   for (var i=0;i<elements.length;i++) {
     var href = elements[i].href;
     var hrefl = href.toLowerCase();
-    if (hrefl.substr(-4)==".jpg" || hrefl.substr(-5)==".jpeg") {      
+    if (hrefl.substr(-4)==".jpg" || hrefl.substr(-5)==".jpeg") {
       if (handled.indexOf(href)>=0) continue;
       handled.push(href);
       imageURLs.push(href);
@@ -341,7 +341,7 @@ function processIndexPage() {
     }
   }
   document.getElementById("left").setAttribute("style","visibility:inherit");
-  document.getElementById("right").setAttribute("style","visibility:inherit"); 
+  document.getElementById("right").setAttribute("style","visibility:inherit");
   document.getElementById("maximise").setAttribute("style","visibility:inherit");
   document.getElementById("modal").setAttribute("style","visibility:hidden");
 }
@@ -358,24 +358,24 @@ function loadAllImages(url) {
 }
 
 function loadImage(url) {
-  document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")");  
+  document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")");
   imageLoader.onload = function() {
     console.log("Full image loaded. Loading next and prev.");
     var i = imageURLs.indexOf(showingImage);
-    if (i>=0) { 
+    if (i>=0) {
       if (i>0) prevImageLoader.src = imageURLs[i-1];
       if (i<imageURLs.length-1) nextImageLoader.src = imageURLs[i+1];
     }
   };
   imageLoader.src = url;
-  document.getElementById("loadingimage").setAttribute("style","background-image:url("+url+")");  
+  document.getElementById("loadingimage").setAttribute("style","background-image:url("+url+")");
   showingImage = url;
 }
 
 function onThumbClicked(e) {
   e.preventDefault();
   var url = e.currentTarget.getAttribute("href");
-  console.log("Clicked "+url);  
+  console.log("Clicked "+url);
   if (e.ctrlKey) {
     window.open(url, '_blank');
   } else {
@@ -414,7 +414,7 @@ window.onload = function() {
   imageLoader = document.createElement("IMG");
   nextImageLoader = document.createElement("IMG");
   prevImageLoader = document.createElement("IMG");
-  
+
   document.getElementById("modal").onclick = onModalClicked;
   document.getElementById("left").onclick = function(e) { onChangeModal(e,-1); };
   document.getElementById("right").onclick = function(e) { onChangeModal(e,+1); };
@@ -429,8 +429,8 @@ window.onload = function() {
   else
     loadAllImages(".");
   // Test by loading a single image..
-  /*getImageThumbnail("P1060001.JPG",function(){},function(u) { 
-    console.log(u); 
+  /*getImageThumbnail("P1060001.JPG",function(){},function(u) {
+    console.log(u);
     i = document.createElement("IMG");
     i.src=u;
     document.getElementById("thumbs").appendChild(i);
