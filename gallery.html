@@ -196,19 +196,19 @@ function getEXIFThumb(url, arraybuffer, callback) {
   var thumbOrientation;
   for (var i=0;i<tags;i++) {
     var tag = rd16(offs+i*12);
-    // console.log(tag.toString(16));
+    //console.log(tag.toString(16));
     if (tag==0x0112) { // JPEG orientation
       thumbOrientation = rd32(offs+i*12+8);
     }
  }
   // skip to next IFD
-  offs += rd32(offs + tags*12);
+  offs = rd32(offs + tags*12)+12;
   var tags = rd16(offs);
   if (tags>300) {
     console.warn(url+" too many EXIF tags ("+tags+") in second IFD!");
     return callback(url);
   }
-  offs += 4;
+  offs += 2;
   // iterate over tags
   var thumbOffset, thumbLen;
   for (var i=0;i<tags;i++) {
