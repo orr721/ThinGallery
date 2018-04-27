@@ -340,7 +340,7 @@ function processIndexPage() {
   for (var i=0;i<elements.length;i++) {
     var href = elements[i].href;
     var hrefl = href.toLowerCase();
-    if (hrefl.substr(-4)==".jpg" || hrefl.substr(-5)==".jpeg") {
+    if (hrefl.substr(-4)==".jpg" || hrefl.substr(-5)==".jpeg" || hrefl.substr(-4)==".png") {
       if (handled.indexOf(href)>=0) continue;
       handled.push(href);
       imageURLs.push(href);
