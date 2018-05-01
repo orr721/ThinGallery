@@ -22,7 +22,28 @@ Usage
 
 -->
  <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="minimal-ui, width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-title" content="Gallery">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/gfwilliams/ThinGallery/master/icons/icon.png">
+  <script type="text/javascript" charset="utf-8">
+    // Mobile Safari in standalone mode
+    if(("standalone" in window.navigator) && window.navigator.standalone){
+      // If you want to prevent remote links in standalone web apps opening Mobile Safari, change 'remotes' to true
+      var noddy, remotes = true;
+      document.addEventListener('click', function(event) {
+        noddy = event.target;
+        // Bubble up until we hit link or top HTML element. Warning: BODY element is not compulsory so better to stop on HTML
+        while(noddy.nodeName !== "A" && noddy.nodeName !== "HTML") {
+          noddy = noddy.parentNode;
+        }
+        if('href' in noddy && noddy.href.indexOf('http') !== -1 && (noddy.href.indexOf(document.location.host) !== -1 || remotes)) {
+          event.preventDefault();
+          document.location.href = noddy.href;
+        }
+      },false);
+    }
+  </script>
   <style>
 :root {
   --thumb-width: 240px;
@@ -115,6 +136,7 @@ Usage
 
 <div id="thumbs"></div>
 <script>
+
 var THUMB_SIZE = 240; // size when we have to load the full image and resize it
 var MAX_CONCURRENT_REQ = 2;
 var requestsInProgress = 0;
@@ -371,12 +393,12 @@ function loadImage(url) {
     console.log("Full image loaded. Loading next and prev.");
     var i = imageURLs.indexOf(showingImage);
     if (i>=0) {
-      if (i>0) prevImageLoader.src = imageURLs[i-1];
-      if (i<imageURLs.length-1) nextImageLoader.src = imageURLs[i+1];
+      if (i>0) prevImageLoader.src = imageURLs[i-1]+"?rand";
+      if (i<imageURLs.length-1) nextImageLoader.src = imageURLs[i+1]+"?rand";
     }
   };
-  imageLoader.src = url;
-  document.getElementById("loadingimage").setAttribute("style","background-image:url("+url.replace(/\(/g, "\\(").replace(/\)/g, "\\)")+")");
+  imageLoader.src = url+"?rand";
+  document.getElementById("loadingimage").setAttribute("style","background-image:url("+url.replace(/\(/g, "\\(").replace(/\)/g, "\\)")+"?rand)");
   showingImage = url;
 }
 
