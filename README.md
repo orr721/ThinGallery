@@ -41,6 +41,12 @@ Usage
 * Click the arrow in the bottom right to load the image in its own tab
 * Click the image, background, or scroll to close the opened image
 
+iOS Web App
+-----------
+
+* Visit the full URL in Safari, and include basic authentication if required: `https://user:password@site.tld/gallery.html?https://site.tld/`
+* In Safari, choose the *Add to Homescreen* option to create a full-screen Web App
+
 How it works
 ------------
 
