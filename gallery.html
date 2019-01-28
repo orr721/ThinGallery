@@ -141,6 +141,12 @@ Usage
 
 var THUMB_SIZE = 240; // size when we have to load the full image and resize it
 var MAX_CONCURRENT_REQ = 2;
+
+var EXT_IMAGES = [".jpg",".jpeg",".png"];
+var EXT_VIDEO = [".avi",".mov",".mpeg",".mpg",".mp4",".ogv"];
+var EXT_AUDIO = [".mp3",".wav",".ogg"];
+var EXT_TEXT = [".txt",".md"];
+
 var requestsInProgress = 0;
 var requestsQueued = [];
 
@@ -264,9 +270,10 @@ function getEXIFThumb(url, arraybuffer, callback) {
   }
 }
 
+// Given a JPEG image, download the header and try and find a thumbnail
 function getImageThumbnail(url, finishedCb, thumbCb) {
   //console.log("Loading "+url);
-  var xhr = new XMLHttpRequest;
+  var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
   xhr.responseType = "arraybuffer";
   xhr.setRequestHeader('Range', 'bytes=0-60000');
@@ -279,6 +286,7 @@ function getImageThumbnail(url, finishedCb, thumbCb) {
   xhr.send(null);
 }
 
+// Load image thumbnails using a queue (don't don them all at once)
 function getImageThumbnailThrottled(url, cb, passURL) {
   if (requestsInProgress < MAX_CONCURRENT_REQ) {
    requestsInProgress++;
@@ -305,12 +313,21 @@ function getImageThumbnailThrottled(url, cb, passURL) {
   }
 }
 
+// Make a displayable name from the URL
+function getNiceName(href) {
+  var niceName = href;
+  // remove trailing slashes
+  while (niceName[niceName.length-1]=="/") 
+    niceName = niceName.substr(0,niceName.length-1);
+  // if there's a slash mid-way, delete what was before
+  if (niceName.lastIndexOf("/")>=0)
+    niceName = niceName.substr(niceName.lastIndexOf("/")+1);
+  return niceName;
+}
+
+// Add a thumbnail with a 'wait' indicator that fills in when ready
 function addDeferredThumb(thumbs, href) {
-  var niceName;
-  if (href.lastIndexOf("/")>=0)
-    niceName = href.substr(href.lastIndexOf("/")+1);
-  else
-    niceName = href;
+  var niceName = getNiceName(href);
 
   function thumbLoaded(url, rotate) {
     imageInfo[href].thumb = url;
@@ -322,8 +339,16 @@ function addDeferredThumb(thumbs, href) {
   var im = document.createElement("DIV");
   im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">&#8987;</div>';
   im.className = "thumb";
-  im.setAttribute("href", href);
-  im.onclick = onThumbClicked;
+  im.onclick = function(e) {
+    e.preventDefault();
+    console.log("Clicked "+href);
+    if (e.ctrlKey) {
+      window.open(href, '_blank');
+    } else {
+      document.getElementById("modal").setAttribute("style","display:block;top:"+window.scrollY+"px");
+      loadImage(href);
+    }
+  };
   im = thumbs.appendChild(im);
   getImageThumbnailThrottled(href, function(url,rotate) {
     if (url == href) {
@@ -336,12 +361,26 @@ function addDeferredThumb(thumbs, href) {
   });
 }
 
+// Add a simple thumbnail where a click opens a new window
+function addBasicThumb(thumbs, href, iconText) {
+  var niceName = getNiceName(href);
+
+  var im = document.createElement("DIV");
+  im.innerHTML = '<div class="caption">'+decodeURIComponent(niceName)+'</div><div class="thumbicon">'+iconText+'</div>';
+  im.className = "thumb";
+  im.setAttribute("href", href);
+  im.onclick = function(e) {
+    e.preventDefault();
+    console.log("Clicked "+href);
+    window.open(href, '_blank');
+  };
+  im = thumbs.appendChild(im);
+}
+
+
+// Add thumbnail for a folder
 function addFolder(thumbs, href) {
-  var niceName = href;
-  if (niceName && niceName[niceName.length-1]=="/") 
-    niceName = niceName.substr(0,href.length-1);
-  if (niceName.lastIndexOf("/")>=0)
-    niceName = niceName.substr(niceName.lastIndexOf("/")+1);
+  var niceName = getNiceName(href);
   if (href.length < baseURL.length) niceName = "[BACK]";
 
   var a = document.createElement("A");
@@ -350,6 +389,7 @@ function addFolder(thumbs, href) {
   thumbs.appendChild(a);
 }
 
+// Scan the index page and add thumbnails for everything
 function processIndexPage() {
   //console.log(this.responseXML.title);
   var thumbs = document.getElementById("thumbs");
@@ -370,13 +410,23 @@ function processIndexPage() {
   for (var i=0;i<elements.length;i++) {
     var href = elements[i].href;
     var hrefl = href.toLowerCase();
-    if (hrefl.substr(-4)==".jpg" || hrefl.substr(-5)==".jpeg" || hrefl.substr(-4)==".png") {
+    var ext = hrefl.match(/\.[^\.]*$/);
+    if (!ext) continue;
+    ext=ext[0];
+    if (EXT_IMAGES.indexOf(ext)>=0) {
       if (handled.indexOf(href)>=0) continue;
       handled.push(href);
       imageURLs.push(href);
       imageInfo[href] = { thumb : "" };
       addDeferredThumb(thumbs, href);
-    }
+    } else if (EXT_VIDEO.indexOf(ext)>=0) {
+      addBasicThumb(thumbs, href, "&#x1F3A5;");
+    } else if (EXT_AUDIO.indexOf(ext)>=0) {
+      addBasicThumb(thumbs, href, "&#128266;");
+    } else if (EXT_TEXT.indexOf(ext)>=0) {
+      addBasicThumb(thumbs, href, "&#x1F5CE;");
+    } else console.log("Unknown file type "+href+", ignoring.");
+ 
   }
   document.getElementById("left").setAttribute("style","visibility:inherit");
   document.getElementById("right").setAttribute("style","visibility:inherit");
@@ -384,8 +434,7 @@ function processIndexPage() {
   document.getElementById("modal").setAttribute("style","visibility:hidden");
 }
 
-
-
+// Load the index page from the web server and display thumbnails
 function loadAllImages(url) {
   var xhr = new XMLHttpRequest();
   xhr.onload = processIndexPage;
@@ -395,6 +444,7 @@ function loadAllImages(url) {
   xhr.send();
 }
 
+// Load a full-size image and also try and load next/prev for faster navigation
 function loadImage(url) {
   document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")");
   imageLoader.onload = function() {
@@ -408,18 +458,6 @@ function loadImage(url) {
   imageLoader.src = url+"?rand";
   document.getElementById("loadingimage").setAttribute("style","background-image:url("+url.replace(/\(/g, "\\(").replace(/\)/g, "\\)")+"?rand)");
   showingImage = url;
-}
-
-function onThumbClicked(e) {
-  e.preventDefault();
-  var url = e.currentTarget.getAttribute("href");
-  console.log("Clicked "+url);
-  if (e.ctrlKey) {
-    window.open(url, '_blank');
-  } else {
-    document.getElementById("modal").setAttribute("style","display:block;top:"+window.scrollY+"px");
-    loadImage(url);
-  }
 }
 
 function onModalClicked(e) {
@@ -466,13 +504,6 @@ window.onload = function() {
     loadAllImages(window.location.search.substr(1));
   else
     loadAllImages(".");
-  // Test by loading a single image..
-  /*getImageThumbnail("P1060001.JPG",function(){},function(u) {
-    console.log(u);
-    i = document.createElement("IMG");
-    i.src=u;
-    document.getElementById("thumbs").appendChild(i);
-  });*/
 };
 
 </script>
