@@ -1,4 +1,4 @@
-<meta charset="UTF-8"> 
+<meta charset="UTF-8">
 <html>
 <!--
 
@@ -317,7 +317,7 @@ function getImageThumbnailThrottled(url, cb, passURL) {
 function getNiceName(href) {
   var niceName = href;
   // remove trailing slashes
-  while (niceName[niceName.length-1]=="/") 
+  while (niceName[niceName.length-1]=="/")
     niceName = niceName.substr(0,niceName.length-1);
   // if there's a slash mid-way, delete what was before
   if (niceName.lastIndexOf("/")>=0)
@@ -331,6 +331,7 @@ function addDeferredThumb(thumbs, href) {
 
   function thumbLoaded(url, rotate) {
     imageInfo[href].thumb = url;
+    imageInfo[href].rotation = rotate;
     im.innerHTML =
       '<div class="thumbimage" style="background-image:url('+url+');transform:rotate('+rotate+'deg)"></div>'+
       '<div class="caption">'+decodeURIComponent(niceName)+'</div>';
@@ -426,7 +427,7 @@ function processIndexPage() {
     } else if (EXT_TEXT.indexOf(ext)>=0) {
       addBasicThumb(thumbs, href, "&#x1F5CE;");
     } else console.log("Unknown file type "+href+", ignoring.");
- 
+
   }
   document.getElementById("left").setAttribute("style","visibility:inherit");
   document.getElementById("right").setAttribute("style","visibility:inherit");
@@ -446,7 +447,8 @@ function loadAllImages(url) {
 
 // Load a full-size image and also try and load next/prev for faster navigation
 function loadImage(url) {
-  document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")");
+  var transform = imageInfo[url].rotation ? ';transform:rotate('+imageInfo[url].rotation+'deg)' : "";
+  document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")"+transform);
   imageLoader.onload = function() {
     console.log("Full image loaded. Loading next and prev.");
     var i = imageURLs.indexOf(showingImage);
@@ -456,7 +458,7 @@ function loadImage(url) {
     }
   };
   imageLoader.src = url+"?rand";
-  document.getElementById("loadingimage").setAttribute("style","background-image:url("+url.replace(/\(/g, "\\(").replace(/\)/g, "\\)")+"?rand)");
+  document.getElementById("loadingimage").setAttribute("style","background-image:url("+url.replace(/\(/g, "\\(").replace(/\)/g, "\\)")+"?rand)"+transform);
   showingImage = url;
 }
 
