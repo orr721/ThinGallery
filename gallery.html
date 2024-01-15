@@ -20,6 +20,14 @@ Usage
 * Don't rename it to `index.html` as the web server's own index.html is required in order to list the photos
 * Open gallery.html with a web browser, and enjoy
 
+Modifications by orr721
+-----------------------
+
+* Modify navigation arrows size and transparency
+* Add .gif to images
+* Comment console logs
+* Re-enable scrolling
+* Support left & right swipe (https://stackoverflow.com/a/56663695)
 
 -->
  <head>
@@ -143,7 +151,7 @@ Usage
 var THUMB_SIZE = 240; // size when we have to load the full image and resize it
 var MAX_CONCURRENT_REQ = 2;
 
-var EXT_IMAGES = [".jpg",".jpeg",".png"];
+var EXT_IMAGES = [".jpg",".jpeg",".png",".gif"];
 var EXT_VIDEO = [".avi",".mov",".mpeg",".mpg",".mp4",".ogv"];
 var EXT_AUDIO = [".mp3",".wav",".ogg"];
 var EXT_TEXT = [".txt",".md"];
@@ -343,7 +351,7 @@ function addDeferredThumb(thumbs, href) {
   im.className = "thumb";
   im.onclick = function(e) {
     e.preventDefault();
-    console.log("Clicked "+href);
+    //console.log("Clicked "+href);
     if (e.ctrlKey) {
       window.open(href, '_blank');
     } else {
@@ -373,7 +381,7 @@ function addBasicThumb(thumbs, href, iconText) {
   im.setAttribute("href", href);
   im.onclick = function(e) {
     e.preventDefault();
-    console.log("Clicked "+href);
+    //console.log("Clicked "+href);
     window.open(href, '_blank');
   };
   im = thumbs.appendChild(im);
@@ -451,7 +459,7 @@ function loadImage(url) {
   var transform = imageInfo[url].rotation ? ';transform:rotate('+imageInfo[url].rotation+'deg)' : "";
   document.getElementById("bigimage").setAttribute("style","background-image:url("+imageInfo[url].thumb+")"+transform);
   imageLoader.onload = function() {
-    console.log("Full image loaded. Loading next and prev.");
+    //console.log("Full image loaded. Loading next and prev.");
     var i = imageURLs.indexOf(showingImage);
     if (i>=0) {
       if (i>0) prevImageLoader.src = imageURLs[i-1]+"?rand";
@@ -488,11 +496,13 @@ function onMaximiseClicked(e) {
   window.open(showingImage, '_blank').focus();
 }
 
-window.onscroll = onModalClicked;
+// window.onscroll = onModalClicked;
 window.onload = function() {
   imageLoader = document.createElement("IMG");
   nextImageLoader = document.createElement("IMG");
   prevImageLoader = document.createElement("IMG");
+  var touchstartX = 0;
+  var touchendX = 0;
 
   document.getElementById("modal").onclick = onModalClicked;
   document.getElementById("left").onclick = function(e) { onChangeModal(e,-1); };
@@ -501,6 +511,14 @@ window.onload = function() {
   document.addEventListener("keydown", function (e) {
     if (e.keyCode==37) onChangeModal(e,-1);
     if (e.keyCode==39) onChangeModal(e,1);
+  });
+  document.addEventListener('touchstart', function (e) {
+    touchstartX = e.changedTouches[0].screenX
+  });
+  document.addEventListener('touchend', function (e) {
+    touchendX = e.changedTouches[0].screenX
+    if (touchendX < touchstartX) onChangeModal(e,+1);
+    if (touchendX > touchstartX) onChangeModal(e,-1);
   });
 
   if (window.location.search.length>1)
